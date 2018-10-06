@@ -21,4 +21,5 @@ public class StateNode extends Node<SmashState, NodeData> {
     public Node nextNode() {
         return nexNode;
     }
+
 }

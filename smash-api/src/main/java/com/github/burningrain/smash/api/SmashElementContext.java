@@ -7,6 +7,6 @@ import com.github.burningrain.smash.api.elements.SmashElement;
  */
 public interface SmashElementContext {
 
-    SmashElement getScenarioElement(Class<? extends SmashElement> clazz);
+    <T extends SmashElement> T getScenarioElement(Class<T> clazz);
 
 }

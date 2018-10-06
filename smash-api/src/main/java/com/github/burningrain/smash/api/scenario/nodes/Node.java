@@ -12,10 +12,22 @@ public abstract class Node<E extends SmashElement, D extends NodeData> {
     private final Class<E> elementClass;
     private final D nodeData;
 
+    private RoadType type = RoadType.CONTINUANCE;
+
     public Node(final String id, final Class<E> elementClass, final D nodeData) {
         this.id = id;
         this.elementClass = elementClass;
         this.nodeData = nodeData;
+    }
+
+    public enum RoadType {
+        START,
+        CONTINUANCE,
+        END
+    }
+
+    public void setRoadType(RoadType type) {
+        this.type = type;
     }
 
     public String getId() {
@@ -33,4 +45,29 @@ public abstract class Node<E extends SmashElement, D extends NodeData> {
     public NodeData.Type getType() {
         return nodeData.getType();
     }
+
+    public boolean isStart() {
+        return RoadType.START == type;
+    }
+
+    public boolean isEnd() {
+        return RoadType.END == type;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Node<?, ?> node = (Node<?, ?>) o;
+
+        return id.equals(node.id);
+
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
 }

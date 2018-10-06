@@ -14,6 +14,6 @@ public abstract class SmashState<PC extends ProcessContext, VIEW> implements Sma
 
     public abstract void processInput(PC input);
 
-    public abstract VIEW getView(ProcessContext processContext);
+    public abstract VIEW getView(PC processContext);
 
 }

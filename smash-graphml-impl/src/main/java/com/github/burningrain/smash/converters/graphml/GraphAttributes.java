@@ -12,9 +12,9 @@ public interface GraphAttributes {
     String ID = "id";
     String ELEMENT_CLASS = "elementClass";
     String TYPE = "type";
-    String IS_PASSED = "isPassed";
     String IS_START_NODE = "isStartNode";
     String IS_END_NODE = "isEndNode";
+    String IS_FRONTIER_NODE = "isFrontierNode";
     String IS_CURRENT_NODE = "isCurrentNode";
 
     // дуга

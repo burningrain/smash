@@ -1,12 +1,13 @@
 package com.github.burningrain.smash.api;
 
+import com.github.burningrain.smash.api.scenario.Scenario;
 import com.github.burningrain.smash.api.scenario.data.ScenarioData;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created by user on 02.06.2018.
+ * @author burningrain on 02.06.2018.
  */
 public class SmashData {
 
@@ -18,14 +19,27 @@ public class SmashData {
         this.defaultScenario = defaultScenario;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public ScenarioData getScenario(String title) {
         return scenarios.get(title);
     }
 
-    public ScenarioData getDefaultScenario() {
-        return scenarios.get(defaultScenario);
+    public String getDefaultScenario() {
+        return defaultScenario;
     }
 
+    void forEach(Callback callback) {
+        for (Map.Entry<String, ScenarioData> dataEntry : scenarios.entrySet()) {
+            callback.call(dataEntry.getKey(), dataEntry.getValue());
+        }
+    }
+
+    interface Callback {
+        void call(String title, ScenarioData scenario);
+    }
 
     public static class Builder {
 

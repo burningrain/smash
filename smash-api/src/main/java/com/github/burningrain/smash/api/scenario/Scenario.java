@@ -1,43 +1,45 @@
 package com.github.burningrain.smash.api.scenario;
 
-import com.github.burningrain.smash.api.elements.SmashPredicate;
-import com.github.burningrain.smash.api.scenario.data.ScenarioData;
-import com.github.burningrain.smash.api.scenario.nodes.StateNode;
 import com.github.burningrain.smash.api.ProcessContext;
 import com.github.burningrain.smash.api.elements.SmashElement;
+import com.github.burningrain.smash.api.elements.SmashPredicate;
 import com.github.burningrain.smash.api.elements.SmashState;
+import com.github.burningrain.smash.api.scenario.data.ScenarioData;
+import com.github.burningrain.smash.api.scenario.data.ScenarioDataVisitor;
 import com.github.burningrain.smash.api.scenario.data.nodes.NodeData;
 import com.github.burningrain.smash.api.scenario.data.transitions.TransitionData;
 import com.github.burningrain.smash.api.scenario.nodes.Node;
 import com.github.burningrain.smash.api.scenario.nodes.PredicateNode;
+import com.github.burningrain.smash.api.scenario.nodes.StateNode;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author burningrain on 18.05.2018.
  */
 public class Scenario {
 
-    private Node currentNode;
     private ScenarioData scenarioData;
+    private Map<String, Node> nodes;
 
-    private Scenario(Node currentNode, ScenarioData scenarioData) {
-        this.currentNode = currentNode;
+    public Scenario(Map<String, Node> nodes, ScenarioData scenarioData) {
         this.scenarioData = scenarioData;
+        this.nodes = nodes;
     }
 
-    public Node getCurrentNode() {
-        return currentNode;
+    public Node getCurrentNode(String nodeId) {
+        if (nodeId == null) {
+            return nodes.get(scenarioData.getStartNodeId());
+        }
+        return nodes.get(nodeId);
     }
 
     public ScenarioData getScenarioData() {
         return scenarioData;
     }
 
-    public <PC extends ProcessContext> Node next(SmashElement scenarioElement, PC processContext) {
-        currentNode.getNodeData().markPassed();
+    public <PC extends ProcessContext> Node next(String nodeId, SmashElement scenarioElement, PC processContext) {
+        Node currentNode = getCurrentNode(nodeId);
         switch (currentNode.getType()) {
             case PREDICATE:
                 PredicateNode predicateNode = (PredicateNode) currentNode;
@@ -49,18 +51,18 @@ public class Scenario {
                 currentNode = stateNode.nextNode();
                 break;
             default:
-                throw new IllegalStateException(String.format("Некорректный тип ноды [%s] для обработки", currentNode.getType()));
+                throw new IllegalStateException(String.format("Incorrect node type [%s] for handling", currentNode.getType()));
         }
         return currentNode;
     }
 
-    public static class Builder {
+    //todo че-то тут трешня какая-то. разобраться
+    public static class Builder implements ScenarioDataVisitor {
 
         private HashMap<String, Node> nodes = new HashMap<String, Node>();
 
         private Node startNode = null;
-        private Node endNode = null;
-        private Node currentNode = null;
+        private Collection<Node> endNodes = new ArrayList<>();
 
         private ScenarioData scenarioData = null;
         private TransitionsWrapper transitionsWrapper = new TransitionsWrapper();
@@ -125,17 +127,34 @@ public class Scenario {
             nodePredicate.setNoNode(noNode);
         }
 
-        public void setStartNode(String id) {
-            this.startNode = checkNodeExist(id);
+        @Override
+        public void setScenarioTitle(String title) {
+            // do nothing
         }
 
-        public void setEndNode(String id) {
-            this.endNode = checkNodeExist(id);
+        @Override
+        public void visit(NodeData nodeData) {
+            this.addNode(nodeData);
         }
 
-        public void setCurrentNode(String nodeId) {
-            if(nodeId == null) return;
-            this.currentNode = checkNodeExist(nodeId);
+        @Override
+        public void visit(TransitionData transitionData) {
+            this.addTransition(transitionData);
+        }
+
+        public void visitStartNode(String nodeDataId) {
+            this.startNode = checkNodeExist(nodeDataId);
+        }
+
+        public void visitEndNodes(Collection<String> ends) {
+            for (String endId : ends) {
+                this.endNodes.add(checkNodeExist(endId));
+            }
+        }
+
+        @Override
+        public void visitFrontierNodes(Collection<String> goOnNodes) {
+            // do nothing
         }
 
         public void setScenarioData(ScenarioData scenarioData) {
@@ -146,8 +165,12 @@ public class Scenario {
             for (Node node : nodes.values()) {
                 switch (node.getType()) {
                     case STATE:
-                        if(endNode.getId().equals(node.getId())) {
+                        if(endNodes.contains(node)) {
+                            node.setRoadType(Node.RoadType.END);
                             continue;
+                        }
+                        if(startNode.equals(node)) {
+                            node.setRoadType(Node.RoadType.START);
                         }
                         final List<TransitionData> transitions = transitionsWrapper.getTransitions(node.getId(), TransitionData.Type.SIMPLE);
                         addStateTransition(transitions.get(0));
@@ -158,24 +181,21 @@ public class Scenario {
                         addPredicateTransition(yesData.getSourceNodeId(), yesData.getDestNodeId(), noData.getDestNodeId());
                         break;
                     default:
-                        throw  new RuntimeException(String.format("Неизвестный тип ноды [%s]", node.getType()));
+                        throw  new RuntimeException(String.format("Unknown node type [%s]", node.getType()));
                 }
             }
 
 
-            if(startNode == null) throw new IllegalStateException("Начальная нода сценария обязательно должна быть выбрана");
-            if(currentNode == null) {
-                currentNode = startNode;
-                //todo вывести в лог, что в качестве текущего состояния выбрано начальное
-            }
+            if(startNode == null) throw new IllegalStateException("Start node is not selected");
             //todo всякие проверки
-            return new Scenario(currentNode, scenarioData);
+            return new Scenario(nodes, scenarioData);
         }
 
         private <T extends Node> T checkNodeExist(String id) {
             final Node node = nodes.get(id);
-            if(node == null) throw new IllegalStateException(String.format("Нода [%s] не добавлена к графу состояний", id));
-            else return (T)node;
+            if(node == null) throw new IllegalStateException(String.format("Node [%s] not added to state graph", id));
+
+            return (T)node;
         }
 
         private static Node createNode(NodeData nodeData) {
@@ -185,7 +205,7 @@ public class Scenario {
                 case PREDICATE:
                     return new PredicateNode(nodeData.getId(), (Class<SmashPredicate>) getClass(nodeData.getElementClass()), nodeData);
                 default:
-                    throw new IllegalArgumentException(String.format("Тип ноды [%s] не поддерживается", nodeData.getType()));
+                    throw new IllegalArgumentException(String.format("Node type [%s] not supported", nodeData.getType()));
             }
         }
 

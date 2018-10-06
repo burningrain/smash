@@ -2,13 +2,14 @@ package com.github.burningrain.smash.api;
 
 import com.github.burningrain.smash.api.entity.ProcessDao;
 import com.github.burningrain.smash.api.entity.ScenarioEntity;
+import com.github.burningrain.smash.api.scenario.Scenario;
 import com.github.burningrain.smash.api.scenario.ScenarioConverter;
 import com.github.burningrain.smash.api.scenario.data.ScenarioData;
 import com.github.burningrain.smash.api.scenario.data.ScenarioDataBuilder;
 import com.github.burningrain.smash.api.scenario.data.StringScenarioConverter;
 
 /**
- * Created by user on 18.05.2018.
+ * @author burningrain on 18.05.2018.
  */
 public class Smash<PC extends ProcessContext, VIEW> {
 
@@ -34,7 +35,7 @@ public class Smash<PC extends ProcessContext, VIEW> {
         smashContext.addSingleton(ScenarioConverter.class, new ScenarioConverter(smashContext));
 
         // объекты работы с графом состояний
-        smashContext.addSingleton(ScenarioManager.class, new ScenarioManager(builder.smashData));
+        smashContext.addSingleton(ScenarioManager.class, new ScenarioManager(smashContext, builder.smashData));
         smashContext.addSingleton(SmashElementContext.class, builder.smashElementContext);
         smashContext.addSingleton(StateManager.class, new StateManager<PC, VIEW>(smashContext));
 
@@ -44,20 +45,40 @@ public class Smash<PC extends ProcessContext, VIEW> {
         scenarioManager = smashContext.getSingleton(ScenarioManager.class);
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public VIEW processInput(PC processContext) {
+        ScenarioEntity processEntity = processDao.getScenarioById(processContext.getProcessId());
+        // если нет сценария, то выставляем сценарий по умолчанию
+        if(processEntity == null) {
+            processEntity = createProcessWithDefaultScenario(processContext, scenarioManager.getDefaultScenario());
+            processEntity.setProcessId(processContext.getProcessId());
+            processDao.createOrUpdateScenario(processEntity);
+        }
+
         stateManager.processInput(processContext);
         return stateManager.getView(processContext);
     }
 
     public void setScenarioForProcess(ProcessContext context, String scenarioTitle) {
-        ScenarioData scenarioData = scenarioManager.getScenario(scenarioTitle);
+        processDao.createOrUpdateScenario(createProcessWithDefaultScenario(context, scenarioTitle));
+    }
+
+    private ScenarioEntity createProcessWithDefaultScenario(ProcessContext context, String scenarioTitle) {
+        Scenario scenario = scenarioManager.getScenario(scenarioTitle);
+        ScenarioData scenarioData = scenario.getScenarioData();
 
         final ScenarioEntity processEntity = smashContext.getPrototype(ScenarioEntity.class);
         processEntity.setProcessId(context.getProcessId());
+        if(debugMode) {
+            processEntity.setScenario(scenarioConverter.toString(scenarioData, scenarioData.getStartNodeId()));
+        }
+        processEntity.setCurrentStateId(scenarioData.getStartNodeId());
         processEntity.setScenarioTitle(scenarioTitle);
-        processEntity.setScenario(scenarioConverter.toString(scenarioData, scenarioData.getStartNode()));
-        processEntity.setCurrentStateId(scenarioData.getStartNode());
-        processDao.createOrUpdateScenario(processEntity);
+        processEntity.setStatus(ProcessStatus.NOT_STARTED);
+        return processEntity;
     }
 
     public static boolean isDebugMode() {
@@ -93,7 +114,7 @@ public class Smash<PC extends ProcessContext, VIEW> {
         public Builder setSmashData(SmashData smashData) {
             this.smashData = smashData;
             return this;
-        }
+    }
 
         public Builder setSmashElementContext(SmashElementContext smashElementContext) {
             this.smashElementContext = smashElementContext;

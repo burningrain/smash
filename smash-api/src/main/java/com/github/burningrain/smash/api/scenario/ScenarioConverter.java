@@ -20,14 +20,17 @@ public class ScenarioConverter {
         this.stringScenarioConverter = smashContext.getSingleton(StringScenarioConverter.class);
     }
 
-    public Scenario toScenario(String scenario, String currentNodeId) {
-        return toScenario(stringScenarioConverter.toScenarioData(scenario), currentNodeId);
+    /**
+     * использовать не в движке в рантайме, а исключительно во внешних редакторах
+     */
+    @Deprecated
+    public Scenario toScenario(String scenario) {
+        return toScenario(stringScenarioConverter.toScenarioData(scenario));
     }
 
-    public Scenario toScenario(ScenarioData scenarioData, String currentNodeId) {
-        ScenarioBuilder scenarioBuilder = new ScenarioBuilder();
+    public Scenario toScenario(ScenarioData scenarioData) {
+        Scenario.Builder scenarioBuilder = new Scenario.Builder();
         scenarioData.accept(scenarioBuilder);
-        scenarioBuilder.setCurrentNode(currentNodeId);
         scenarioBuilder.setScenarioData(scenarioData);
         return scenarioBuilder.build();
     }
@@ -35,7 +38,6 @@ public class ScenarioConverter {
     public String toString(ScenarioData scenarioData, String currentNodeId) {
         final ScenarioDataBuilder scenarioDataBuilder = smashContext.getPrototype(visitorBuilderClass);
         scenarioData.accept(scenarioDataBuilder);
-        scenarioDataBuilder.setCurrentNode(currentNodeId);
         return scenarioDataBuilder.build();
     }
 

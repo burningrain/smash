@@ -7,6 +7,7 @@ import org.jgrapht.graph.SimpleDirectedGraph;
 import org.jgrapht.io.*;
 
 import java.io.StringWriter;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,7 +18,8 @@ public class ScenarioDataBuilderImpl implements ScenarioDataBuilder {
 
     private String title;
     private String startNodeId;
-    private String endNodeId;
+    private Collection<String> endNodes;
+    private Collection<String> frontierNodes;
     private HashMap<String, NodeData> nodes = new HashMap<>();
     private SimpleDirectedGraph<NodeData, TransitionWrapper> graph = new SimpleDirectedGraph<>(TransitionWrapper.class);
     private String currentNodeId;
@@ -72,12 +74,17 @@ public class ScenarioDataBuilderImpl implements ScenarioDataBuilder {
         graph.addEdge(source, dest, new TransitionWrapper().setSource(source).setDest(dest).setLinkType(transitionData.getType())); //FIXME
     }
 
-    public void setStartNode(String nodeDataId) {
+    public void visitStartNode(String nodeDataId) {
         this.startNodeId = nodeDataId;
     }
 
-    public void setEndNode(String nodeDataId) {
-        this.endNodeId = nodeDataId;
+    public void visitEndNodes(Collection<String> endNodes) {
+        this.endNodes = endNodes;
+    }
+
+    @Override
+    public void visitFrontierNodes(Collection<String> frontierNodes) {
+        this.frontierNodes = frontierNodes;
     }
 
     public void setCurrentNode(String nodeDataId) {
@@ -94,9 +101,9 @@ public class ScenarioDataBuilderImpl implements ScenarioDataBuilder {
         exporter.registerAttribute(GraphAttributes.ID, GraphMLExporter.AttributeCategory.NODE, AttributeType.STRING);
         exporter.registerAttribute(GraphAttributes.ELEMENT_CLASS, GraphMLExporter.AttributeCategory.NODE, AttributeType.STRING);
         exporter.registerAttribute(GraphAttributes.TYPE, GraphMLExporter.AttributeCategory.NODE, AttributeType.STRING);
-        exporter.registerAttribute(GraphAttributes.IS_PASSED, GraphMLExporter.AttributeCategory.NODE, AttributeType.BOOLEAN);
         exporter.registerAttribute(GraphAttributes.IS_START_NODE, GraphMLExporter.AttributeCategory.NODE, AttributeType.BOOLEAN);
         exporter.registerAttribute(GraphAttributes.IS_END_NODE, GraphMLExporter.AttributeCategory.NODE, AttributeType.BOOLEAN);
+        exporter.registerAttribute(GraphAttributes.IS_FRONTIER_NODE, GraphMLExporter.AttributeCategory.NODE, AttributeType.BOOLEAN);
         exporter.registerAttribute(GraphAttributes.IS_CURRENT_NODE, GraphMLExporter.AttributeCategory.NODE, AttributeType.BOOLEAN);
 
         // дуга
@@ -109,9 +116,9 @@ public class ScenarioDataBuilderImpl implements ScenarioDataBuilder {
                 result.put(GraphAttributes.ID, DefaultAttribute.createAttribute(nodeData.getId()));
                 result.put(GraphAttributes.ELEMENT_CLASS, DefaultAttribute.createAttribute(nodeData.getElementClass()));
                 result.put(GraphAttributes.TYPE, DefaultAttribute.createAttribute(nodeData.getType().name()));
-                result.put(GraphAttributes.IS_PASSED, DefaultAttribute.createAttribute(nodeData.isPassed()));
                 result.put(GraphAttributes.IS_START_NODE, DefaultAttribute.createAttribute(startNodeId.equals(nodeData.getId())));
-                result.put(GraphAttributes.IS_END_NODE, DefaultAttribute.createAttribute(endNodeId.equals(nodeData.getId())));
+                result.put(GraphAttributes.IS_END_NODE, DefaultAttribute.createAttribute(endNodes.contains(nodeData.getId())));
+                result.put(GraphAttributes.IS_FRONTIER_NODE, DefaultAttribute.createAttribute(frontierNodes.contains(nodeData.getId())));
                 result.put(GraphAttributes.IS_CURRENT_NODE, DefaultAttribute.createAttribute(currentNodeId.equals(nodeData.getId())));
 
                 result.put(GraphAttributes.SCENARIO_TITLE, DefaultAttribute.createAttribute(ScenarioDataBuilderImpl.this.title));

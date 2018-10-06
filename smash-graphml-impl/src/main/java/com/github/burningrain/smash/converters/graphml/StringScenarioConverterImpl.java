@@ -3,11 +3,15 @@ package com.github.burningrain.smash.converters.graphml;
 import com.github.burningrain.smash.api.scenario.data.ScenarioData;
 import com.github.burningrain.smash.api.scenario.data.StringScenarioConverter;
 import com.github.burningrain.smash.api.scenario.data.nodes.NodeData;
+import com.github.burningrain.smash.api.scenario.data.nodes.PredicateData;
+import com.github.burningrain.smash.api.scenario.data.nodes.StateData;
 import com.github.burningrain.smash.api.scenario.data.transitions.TransitionData;
 import org.jgrapht.graph.SimpleDirectedGraph;
 import org.jgrapht.io.*;
 
 import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -19,7 +23,8 @@ public class StringScenarioConverterImpl implements StringScenarioConverter {
         private String scenarioTitle;
 
         private String startId;
-        private String endId;
+        private Collection<String> endNodes = new ArrayList<>();
+        private Collection<String> frontierNodes = new ArrayList<>();
     }
 
     public ScenarioData toScenarioData(String scenario) {
@@ -35,29 +40,38 @@ public class StringScenarioConverterImpl implements StringScenarioConverter {
                     }
 
                     final String identifier = attributes.get(GraphAttributes.ID).getValue();
+                    String elementClass = attributes.get(GraphAttributes.ELEMENT_CLASS).getValue();
                     final boolean isStart = Boolean.valueOf(attributes.get(GraphAttributes.IS_START_NODE).getValue());
                     final boolean isEnd = Boolean.valueOf(attributes.get(GraphAttributes.IS_END_NODE).getValue());
-                    if(isStart){
+                    final boolean isFrontier = Boolean.valueOf(attributes.get(GraphAttributes.IS_FRONTIER_NODE).getValue());
+                    if(isStart) {
                         wrapperDto.startId = identifier;
                     }
                     if(isEnd) {
-                        wrapperDto.endId = identifier;
+                        wrapperDto.endNodes.add(identifier);
+                    }
+                    if(isFrontier) {
+                        wrapperDto.frontierNodes.add(identifier);
                     }
 
-                    return NodeData.of(
-                            Boolean.valueOf(attributes.get(GraphAttributes.IS_PASSED).getValue()),
-                            NodeData.Type.valueOf(attributes.get(GraphAttributes.TYPE).getValue()),
-                            identifier,
-                            attributes.get(GraphAttributes.ELEMENT_CLASS).getValue()
-                    );
+                    NodeData.Type type = NodeData.Type.valueOf(attributes.get(GraphAttributes.TYPE).getValue());
+
+                    switch (type) {
+                        case STATE:
+                            return new StateData(identifier, elementClass);
+                        case PREDICATE:
+                            return new PredicateData(identifier, elementClass);
+                        default:
+                            throw new IllegalArgumentException("Неизвестный тип ноды [" + type + "]");
+                    }
                 }
             },
             new EdgeProvider<NodeData, TransitionData>() {
 
                 @Override
-                public TransitionData buildEdge(NodeData from, NodeData to, String label, Map<String, Attribute> attributes) {
+                public TransitionData buildEdge(NodeData source, NodeData dest, String label, Map<String, Attribute> attributes) {
                     final TransitionData.Type type = TransitionData.Type.valueOf(attributes.get(GraphAttributes.LINK_TYPE).getValue());
-                    return TransitionData.of(type, from.getId(), to.getId(), false);
+                    return TransitionData.of(type, source.getId(), dest.getId());
                 }
             }
         );
@@ -76,7 +90,8 @@ public class StringScenarioConverterImpl implements StringScenarioConverter {
         }
         builder.setTitle(wrapperDto.scenarioTitle);
         builder.setStartNode(wrapperDto.startId);
-        builder.setEndNode(wrapperDto.endId);
+        builder.setEndNodes(wrapperDto.endNodes);
+        builder.setFrontierNodes(wrapperDto.frontierNodes);
         return builder.build();
     }
 
