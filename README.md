@@ -66,7 +66,7 @@ It supports the next types of elements:
             )
         .end();
 ```
-You could see how it works at the [test](com/github/burningrain/smash/api/scenario/builder/SmashBuilderTest.java)
+You could see how it works at the [test](https://github.com/burningrain/smash/blob/master/smash-api/src/test/java/com/github/burningrain/smash/api/scenario/builder/SmashBuilderTest.java)
 
 ### How Use
 
