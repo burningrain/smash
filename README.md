@@ -12,7 +12,7 @@ It supports the next types of elements:
 
 ### An Example Of Business Process Description
 
-![the process description](https://github.com/burningrain/smash/blob/main/smash-graphml-impl/resources/example.png?raw=true)
+![the process description](https://github.com/burningrain/smash/blob/master/smash-graphml-impl/src/main/resources/example.png?raw=true)
 
 ```java
         // states
