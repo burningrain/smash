@@ -5,6 +5,8 @@ package com.github.burningrain.smash.api.scenario.data;
  */
 public interface ScenarioDataBuilder extends ScenarioDataVisitor {
 
+    void setCurrentNode(String nodeDataId);
+
     String build();
 
 }

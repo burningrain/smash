@@ -38,6 +38,7 @@ public class ScenarioConverter {
     public String toString(ScenarioData scenarioData, String currentNodeId) {
         final ScenarioDataBuilder scenarioDataBuilder = smashContext.getPrototype(visitorBuilderClass);
         scenarioData.accept(scenarioDataBuilder);
+        scenarioDataBuilder.setCurrentNode(currentNodeId);
         return scenarioDataBuilder.build();
     }
 

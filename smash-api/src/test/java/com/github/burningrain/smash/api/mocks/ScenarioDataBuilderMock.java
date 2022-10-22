@@ -11,6 +11,11 @@ import java.util.Collection;
  */
 public class ScenarioDataBuilderMock implements ScenarioDataBuilder {
     @Override
+    public void setCurrentNode(String nodeDataId) {
+
+    }
+
+    @Override
     public String build() {
         return null;
     }
